@@ -8,3 +8,7 @@ def get_optimizer(optim_name, lr):
         raise ValueError('optimizer not supported')
 
     return optimizer
+
+
+def save_checkpoint():
+    pass

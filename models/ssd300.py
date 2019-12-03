@@ -38,10 +38,8 @@ class SSD300(object):
         self._build_target()
 
     def _build_backbone(self):
+        # the preprocessed image tensor
         self.x = Input(shape=(self.image_height, self.image_width, self.channels), name='input_x')
-        # do optional input preprocessing (mean subtraction, channel swapping)
-        # TODO
-        # x1 = tf.identity(self.x)
 
         conv1_1 = Conv2D(64, (3, 3), activation='relu', padding='same', kernel_initializer='he_normal',
                          kernel_regularizer=l2(self.l2_regularization), name='conv1_1')(self.x)
@@ -168,7 +166,8 @@ class SSD300(object):
 
     def _build_target(self):
         mbox_conf_softmax = Activation('softmax', name='mbox_conf_softmax')(self.mbox_conf)
-        predictions = Concatenate(axis=2, name='predictions')([mbox_conf_softmax, self.mbox_loc, self.mbox_priorbox])
+        predictions = Concatenate(axis=2, name='final_predictions')([mbox_conf_softmax,
+                                                                     self.mbox_loc, self.mbox_priorbox])
 
         if self.phase == 'train':
             self.input = self.x

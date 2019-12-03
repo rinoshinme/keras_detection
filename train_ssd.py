@@ -1,4 +1,5 @@
 import tensorflow as tf
+from keras.models import Model
 from datetime import datetime
 from dataset.dataset_pascalvoc import DatasetPascalvoc
 from dataset.data_generator import get_ssd_input_transform, DataGenerator
@@ -40,7 +41,7 @@ config = {
                     'diningtable', 'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep',
                     'sofa', 'train', 'tvmonitor'),
     'num_classes': 20,
-    'pretrained_model_path': None,
+    'pretrained_weights': None,
     'anchor_params': anchor_params_ssd300,
     'conf_thresh': 0.5,
     'iou_thresh_high': 0.5,
@@ -70,6 +71,14 @@ class SSDTrainer(object):
         self.image_height = self.cfg['image_height']
         self.image_width = self.cfg['image_width']
         self.num_classes = self.cfg['num_classes']
+        self.pretrained_weights = self.cfg['pretrained_weights']
+        if self.pretrained_weights is None:
+            if os_name == 'Windows':
+                self.pretrained_weights = r'D:\code\tools\keras_models\vgg16_weights_tf_dim_ordering_tf_kernels.h5',
+            elif os_name == 'Linux':
+                self.pretrained_weights = '/violence/code/pretrained_models/vgg16_weights_tf_dim_ordering_tf_kernels.h5'
+            else:
+                raise ValueError('operating system currently not supported')
 
         # data params
         self.dataset_dirs = self.cfg['dataset_dirs']
@@ -101,7 +110,7 @@ class SSDTrainer(object):
                                         self.anchor_params['variances'],
                                         self.iou_thresh_high,
                                         self.iou_thresh_low)
-        self.output_decoder = None
+        # self.output_decoder = None
 
         self._build_data()
         self._build_model()
@@ -125,6 +134,13 @@ class SSDTrainer(object):
 
     def _build_model(self):
         self.model = SSD300(self.num_classes, self.anchor_params, phase='train')
+
+        self.keras_model = Model(inputs=self.model.input, outputs=self.model.output)
+        # load pretrained weights
+        print('loading pretrained weights...')
+        self.keras_model.load_weights(self.pretrained_weights, by_name=True)
+        print('done loading weights')
+
         self.input = self.model.input
         output_shape = self.model.output.get_shape().as_list()  # [None, 8732, 33]
         self.target = tf.placeholder(shape=output_shape, dtype=tf.float32, name='y_target')
@@ -140,6 +156,7 @@ class SSDTrainer(object):
         dt = datetime.now()
         dt_str = dt.strftime('%Y%m%d_%H%M%S')
         output_dir = './logs/{}'.format(dt_str)
+        print('saving logs and trained weights into {}'.format(output_dir))
 
         steps = 0
         self.session.run(tf.global_variables_initializer())
@@ -176,10 +193,12 @@ if __name__ == '__main__':
             trainset.build([voc2007_dir, voc2012_dir], 'train')
             trainset.pickle('./data/voc0712.pkl')
             print(trainset.size)
-        else:
+        elif os_name == 'Linux':
             voc2007_dir = '/violence/data/VOCdevkit/VOC2007'
             voc2012_dir = '/violence/data/VOCdevkit/VOC2012'
             trainset = DatasetPascalvoc()
             trainset.build([voc2007_dir, voc2012_dir], 'train')
             trainset.pickle('./data/voc0712.pkl')
             print(trainset.size)
+        else:
+            raise ValueError('operating system currently not supported')

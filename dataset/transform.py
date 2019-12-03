@@ -1,5 +1,5 @@
 """
-define all kinds of image transformations
+image transformations
 """
 import cv2
 import numpy as np
