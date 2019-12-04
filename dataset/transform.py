@@ -4,7 +4,7 @@ image transformations
 import cv2
 import numpy as np
 
-IMAGENET_MEAN = np.array([127, 127, 127], dtype=np.float)
+IMAGENET_MEAN = np.array([127, 117, 104], dtype=np.float)
 
 
 class ImageTransformer(object):

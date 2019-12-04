@@ -10,7 +10,7 @@ from utils.box_matching import match_ground_truth, match_anchor_boxes
 class SSDEncoder(object):
     def __init__(self, image_height, image_width, num_classes, feature_map_sizes,
                  scales, aspect_ratios, two_boxes_for_ar1, steps,
-                 offset, clip_boxes, variances, iou_thresh_high, iou_thresh_low, background_id=0):
+                 offsets, clip_boxes, variances, iou_thresh_high, iou_thresh_low, background_id=0):
         self.image_height = image_height
         self.image_width = image_width
         self.num_classes = num_classes + 1
@@ -19,7 +19,7 @@ class SSDEncoder(object):
         self.aspect_ratios = aspect_ratios
         self.two_boxes_for_ar1 = two_boxes_for_ar1
         self.steps = steps
-        self.offset = offset
+        self.offsets = offsets
         self.clip_boxes = clip_boxes
         self.variances = variances
         self.iou_thresh_high = iou_thresh_high
@@ -32,7 +32,7 @@ class SSDEncoder(object):
             box_tensor = generate_anchors(self.image_height, self.image_width,
                                           self.feature_map_sizes[i][0], self.feature_map_sizes[i][1],
                                           self.scales[i], self.scales[i+1], self.steps[i], self.aspect_ratios[i],
-                                          two_boxes_for_ar1=self.two_boxes_for_ar1, offset=self.offset,
+                                          two_boxes_for_ar1=self.two_boxes_for_ar1, offset=self.offsets[i],
                                           normalize_coord=True, clip_boundary=True)
             # each is of shape (feat_size, feat_size, nbox, 4) in (xmin, ymin, xmax, ymax) form
             self.boxes_list.append(box_tensor)
@@ -139,7 +139,7 @@ def test_encoding():
                          scales, aspect_ratios, two_boxes_for_ar1, steps,
                          offsets, clip_boxes, variances, iou_thresh_high, iou_thresh_low)
     temp = encoder.get_encoding_template(batch_size=8)
-    # print(temp.shape)
+    print(len(temp))
 
 
 if __name__ == '__main__':

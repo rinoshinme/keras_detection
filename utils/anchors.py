@@ -65,6 +65,10 @@ def generate_anchors(image_height, image_width, feature_map_height, feature_map_
     return box_tensor
 
 
+def anchor_clustering(boxes):
+    pass
+
+
 def test_generate_anchors():
     image_height = 300
     image_width = 300

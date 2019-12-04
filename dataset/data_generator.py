@@ -69,6 +69,7 @@ def _get_voc_generator(dataset_dirs, transform, batch_size, phase='train', class
 
 
 def get_ssd_input_transform():
+    # default input channels: BGR for ssd
     return ImageTransformer([Resize((300, 300)), Normalizer()])
 
 

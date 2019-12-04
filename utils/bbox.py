@@ -1,3 +1,6 @@
+"""
+bounding box functions in numpy
+"""
 import numpy as np
 
 

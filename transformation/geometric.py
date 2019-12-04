@@ -1,0 +1,4 @@
+"""
+geometric transformations,
+rotation, cropping
+"""

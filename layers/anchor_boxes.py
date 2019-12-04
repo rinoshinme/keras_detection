@@ -4,7 +4,6 @@ from keras.engine.topology import Layer
 import tensorflow as tf
 from utils.bbox import center2minmax, minmax2center
 
-#
 example_params = {
     'image_width': 300,
     'image_height': 300,
@@ -21,6 +20,9 @@ example_params = {
 
 
 class AnchorBoxes(Layer):
+    """
+    output anchor boxes in center format
+    """
     def __init__(self, args):
         # self.args = args
         self.image_width = args['image_width']
@@ -33,9 +35,9 @@ class AnchorBoxes(Layer):
         self.offset = args['offset']
         self.clip_box = args['clip_box']
         self.variance = args['variances']
-        # TODO
-        #  self.normalize_coord = args['normalize_coord']
+        self.normalize_coords = args['normalize_coords']
 
+        # calculate number of anchor boxes per pixel
         if 1 in self.aspect_ratios and self.two_boxes_for_ar1:
             self.n_boxes = len(self.aspect_ratios) + 1
         else:
@@ -53,7 +55,7 @@ class AnchorBoxes(Layer):
         # calculate per-pixel boxes
         wh_list = []
         for ar in self.aspect_ratios:
-            if ar != 1.0:
+            if ar != 1:
                 box_height = self.scale * size / np.sqrt(ar)
                 box_width = self.scale * size * np.sqrt(ar)
                 wh_list.append((box_height, box_width))
@@ -86,24 +88,24 @@ class AnchorBoxes(Layer):
         boxes_tensor[:, :, :, 2] = wh_list[:, 0]
         boxes_tensor[:, :, :, 3] = wh_list[:, 1]
 
-        # do normalization
-        boxes_tensor[:, :, :, 0] /= self.image_width
-        boxes_tensor[:, :, :, 1] /= self.image_height
-        boxes_tensor[:, :, :, 2] /= self.image_width
-        boxes_tensor[:, :, :, 3] /= self.image_height
+        if self.normalize_coords:
+            boxes_tensor[:, :, :, 0] /= self.image_width
+            boxes_tensor[:, :, :, 1] /= self.image_height
+            boxes_tensor[:, :, :, 2] /= self.image_width
+            boxes_tensor[:, :, :, 3] /= self.image_height
 
-        # if self.clip_box:
-        #     boxes_tensor = center2minmax(boxes_tensor)
-        #     # this need to be done in (xmin, ymin, xmax, ymax) format
-        #     x_coords = boxes_tensor[:, :, :, [0, 2]]
-        #     x_coords[x_coords >= 1.0] = 1.0
-        #     x_coords[x_coords < 0] = 0
-        #     boxes_tensor[:, :, :, [0, 2]] = x_coords
-        #     y_coords = boxes_tensor[:, :, :, [1, 3]]
-        #     y_coords[y_coords >= 1.0] = 1.0
-        #     y_coords[y_coords < 0] = 0
-        #     boxes_tensor[:, :, :, [1, 3]] = y_coords
-        #     boxes_tensor = minmax2center(boxes_tensor)
+        if self.clip_box:
+            boxes_tensor = center2minmax(boxes_tensor)
+            # this need to be done in (xmin, ymin, xmax, ymax) format
+            x_coords = boxes_tensor[:, :, :, [0, 2]]
+            x_coords[x_coords > 1.0] = 1.0
+            x_coords[x_coords < 0] = 0
+            boxes_tensor[:, :, :, [0, 2]] = x_coords
+            y_coords = boxes_tensor[:, :, :, [1, 3]]
+            y_coords[y_coords > 1.0] = 1.0
+            y_coords[y_coords < 0] = 0
+            boxes_tensor[:, :, :, [1, 3]] = y_coords
+            boxes_tensor = minmax2center(boxes_tensor)
 
         # add variances to the end of boxes_tensor
         variances_tensor = np.zeros_like(boxes_tensor)
@@ -113,6 +115,7 @@ class AnchorBoxes(Layer):
         # add batch size dimension
         boxes_tensor = np.expand_dims(boxes_tensor, axis=0)
 
+        # coordinates of anchor boxes are actually constants
         boxes_tensor = tf.tile(tf.constant(boxes_tensor, dtype='float32'),
                                (tf.shape(feature_map)[0], 1, 1, 1, 1))
 
@@ -132,8 +135,6 @@ class AnchorBoxes(Layer):
             'two_boxes_for_ar1': self.two_boxes_for_ar1,
             'clip_boxes': self.clip_box,
             'variances': list(self.variance),
-            # 'coords': self.coords,
-            # 'normalize_coords': self.normalize_coords
         }
         base_config = super(AnchorBoxes, self).get_config()
 
